@@ -3,41 +3,93 @@ import bcrypt from 'bcrypt';
 
 const { Schema, model } = mongoose;
 
-const usuarioColegioSchema = new Schema({
-  tipoIdentificacion: {
+const schoolUserSchema = new Schema({
+  // Campos de identificación
+  identificationType: {
     type: String,
     enum: ['CC', 'TI', 'CE', 'PP'],
-    required: true
+    required: true,
+    description: 'Tipo de documento: CC (Cédula), TI (Tarjeta Identidad), CE (Cédula Extranjería), PP (Pasaporte)'
   },
-  numeroIdentificacion: {
+  identificationNumber: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    description: 'Número de documento de identidad (único en el sistema)'
   },
-  nombre: { type: String, required: true },
-  apellido: { type: String, required: true },
-  correo: { type: String, required: false }, // No es único ni obligatorio
-  contraseña: { type: String, required: true },
-  rol: {
+
+  // Información personal
+  firstName: { 
+    type: String, 
+    required: true,
+    description: 'Nombre(s) del usuario'
+  },
+  lastName: { 
+    type: String, 
+    required: true,
+    description: 'Apellido(s) del usuario'
+  },
+  email: { 
+    type: String, 
+    required: false,
+    description: 'Correo electrónico (opcional, no requiere ser único)'
+  },
+
+  // Seguridad y acceso
+  password: { 
+    type: String, 
+    required: true,
+    description: 'Contraseña (se guarda hasheada automáticamente)'
+  },
+  role: {
     type: String,
     enum: ['rector', 'coordinador', 'secretaria', 'profesor', 'acudiente', 'estudiante'],
-    required: true
+    required: true,
+    description: 'Rol del usuario: principal (rector), coordinator (coordinador), ' +
+                'secretary (secretaria), teacher (profesor), parent (acudiente), ' +
+                'student (estudiante)'
   },
-  colegio: { type: Schema.Types.ObjectId, ref: 'Colegio', required: false },
-}, { timestamps: true });
 
-// Encriptar contraseña antes de guardar
-usuarioColegioSchema.pre('save', async function (next) {
-  if (!this.isModified('contraseña')) return next();
+  // Relaciones
+  school: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'School', 
+    required: false,
+    description: 'Institución educativa asociada (opcional)'
+  }
+}, { 
+    timestamps: true,
+    description: 'Modelo de usuarios del sistema escolar'
+});
+
+/**
+ * Middleware pre-save
+ * ------------------
+ * Se ejecuta antes de guardar el documento.
+ * Si la contraseña fue modificada, la hashea usando bcrypt.
+ * La sal (salt) se genera automáticamente con factor de costo 10.
+ */
+schoolUserSchema.pre('save', async function (next) {
+  // Solo hashear si la contraseña fue modificada
+  if (!this.isModified('password')) return next();
+  
+  // Generar sal y hashear contraseña
   const salt = await bcrypt.genSalt(10);
-  this.contraseña = await bcrypt.hash(this.contraseña, salt);
+  this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Comparar contraseñas
-usuarioColegioSchema.methods.compararContraseña = async function (passwordIngresada) {
-  return bcrypt.compare(passwordIngresada, this.contraseña);
+/**
+ * Método: comparePassword
+ * ----------------------
+ * Compara una contraseña en texto plano con la hasheada almacenada.
+ * 
+ * @param {string} enteredPassword - Contraseña ingresada a validar
+ * @returns {Promise<boolean>} - true si coinciden, false si no
+ */
+schoolUserSchema.methods.comparePassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
-export default model('usersSchool', usuarioColegioSchema);
+export default model('SchoolUsers', schoolUserSchema);
 

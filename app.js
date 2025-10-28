@@ -6,7 +6,14 @@ import connectDB from './db.js';
 
 
 import qualificationsRoutes from './routes/qualificationsRoutes.js';
+import academicYearRoutes from './routes/academicYearRoutes.js';
 import authRoutes from './routes/auth.js'
+
+// ✅ IMPORTAR MODELOS PARA REGISTRARLOS EN MONGOOSE -- PRUEBAS POSTMAN -- BORRAR ESTOS CUANDO SE INTEGRE LOS MODELOS REALES
+import './models/school.js';
+import './models/subject.js';
+import './models/group.js';
+import './models/period.js';
 
 dotenv.config(); // Carga variables de entorno (.env)
 connectDB(); // Conexión a MongoDB
@@ -28,6 +35,9 @@ app.use('/api/auth', authRoutes);
 
 // Montar las rutas del módulo de calificaciones
 app.use('/api/calificaciones', qualificationsRoutes);
+
+// Montar las rutas del módulo de vigencias
+app.use('/api/vigencias', academicYearRoutes);
 
 // Manejo básico de errores (404)
 app.use((req, res, next) => {

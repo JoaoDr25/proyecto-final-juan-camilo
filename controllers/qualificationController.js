@@ -1,115 +1,190 @@
 import * as service from '../services/qualificationService.js';
 
-export const obtener = async (req, res) => {
+/**
+ * get
+ * - Obtiene una calificación por su _id.
+ * - Path params: :id
+ * - Respuestas: 200 -> objeto calificación, 404 -> no encontrada, 500 -> error
+ */
+export const get = async (req, res) => {
   try {
-    const cal = await service.obtenerPorId(req.params.id);
-    if (!cal) return res.status(404).json({ message: 'No encontrada' });
-    res.json(cal);
+    const qualification = await service.getById(req.params.id);
+    if (!qualification) return res.status(404).json({ message: 'No encontrado' });
+    res.json(qualification);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-export const listarPorEstudiante = async (req, res) => {
+/**
+ * listByStudent
+ * - Lista las calificaciones de un estudiante.
+ * - Path params: :studentId
+ * - Query params opcional: ?year=2023
+ * - Respuesta: array de calificaciones
+ */
+export const listByStudent = async (req, res) => {
   try {
-    const { estudianteId } = req.params;
-    const { año } = req.query;
-    const list = await service.listarPorEstudiante(estudianteId, año);
+    const { studentId } = req.params;
+    const { year } = req.query;
+    const list = await service.listByStudent(studentId, year);
     res.json(list);
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { 
+    res.status(500).json({ message: err.message }); 
+  }
 };
 
-export const listarPorGrupo = async (req, res) => {
+/**
+ * listByGroup
+ * - Lista las calificaciones de un grupo.
+ * - Path params: :groupId
+ * - Query params opcional: ?year=2023
+ */
+export const listByGroup = async (req, res) => {
   try {
-    const { grupoId } = req.params;
-    const { año } = req.query;
-    const list = await service.listarPorGrupo(grupoId, año);
-    res.json(list);
-  } catch (err) { res.status(500).json({ message: err.message }); }
+    const { groupId } = req.params;
+    const { year } = req.query;
+    const list = await service.listByGroup(groupId, year);
+    return res.status(200).json(list);
+  } catch (err) {
+    if (!res.headersSent)
+      return res.status(500).json({ message: err.message });
+  }
 };
 
-export const listarPorGrupoYMateria = async (req, res) => {
+/**
+ * listByGroupAndSubject
+ * - Lista las calificaciones de un grupo para una materia específica.
+ * - Path params: :groupId, :subjectId
+ * - Query params opcional: ?year=2023
+ */
+export const listByGroupAndSubject = async (req, res) => {
   try {
-    const { grupoId, materiaId } = req.params;
-    const { año } = req.query;
-    const data = await service.listarPorGrupoYMateria(grupoId, materiaId, año);
+    const { groupId, subjectId } = req.params;
+    const { year } = req.query;
+    const data = await service.listByGroupAndSubject(groupId, subjectId, year);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-export const listarFinalesPorAño = async (req, res) => {
+/**
+ * listFinalsByYear
+ * - Lista todas las calificaciones finales de un año concreto.
+ * - Path params: :year
+ */
+export const listFinalsByYear = async (req, res) => {
   try {
-    const { año } = req.params;
-    const data = await service.listarFinalesPorAño(año);
+    const { year } = req.params;
+    const data = await service.listFinalsByYear(year);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-export const listarFinalesPorEstudiante = async (req, res) => {
+/**
+ * listFinalsByStudent
+ * - Lista las calificaciones finales de un estudiante (opcionalmente por año).
+ * - Path params: :studentId
+ * - Query params opcional: ?year=2023
+ */
+export const listFinalsByStudent = async (req, res) => {
   try {
-    const { estudianteId } = req.params;
-    const { año } = req.query;
-    const data = await service.listarFinalesPorEstudiante(estudianteId, año);
+    const { studentId } = req.params;
+    const { year } = req.query;
+    const data = await service.listFinalsByStudent(studentId, year);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-export const listarFinalesPorGrupo = async (req, res) => {
+/**
+ * listFinalsByGroup
+ * - Lista las calificaciones finales de un grupo (opcionalmente por año).
+ * - Path params: :groupId
+ */
+export const listFinalsByGroup = async (req, res) => {
   try {
-    const { grupoId } = req.params;
-    const { año } = req.query;
-    const data = await service.listarFinalesPorGrupo(grupoId, año);
+    const { groupId } = req.params;
+    const { year } = req.query;
+    const data = await service.listFinalsByGroup(groupId, year);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-export const crear = async (req, res) => {
+/**
+ * create
+ * - Crea una calificación (tipo PERIOD o FINAL según el body).
+ * - Body: objeto con los campos del modelo qualifications.js
+ * - Actualmente asigna registeredBy usando req.user (si existe) o el valor
+ *   proporcionado en el body. Como autenticación puede estar desactivada,
+ *   registeredBy es opcional.
+ */
+export const create = async (req, res) => {
   try {
     const data = req.body;
-
-    // Por ahora, permitimos que secretaria cree notas
-    // En el futuro: validar si req.user.rol === 'profesor' y pertenece a la materia/grupo
-    data.registradoPor = req.user?._id || data.registradoPor;
-    const created = await service.crear(data);
+    // Por ahora permitimos que la secretaria cree calificaciones. En el futuro
+    // se puede validar req.user.role === 'teacher' y que pertenezca a la materia/grupo.
+    data.registeredBy = req.user?._id || data.registeredBy;
+    const created = await service.create(data);
     res.status(201).json(created);
   } catch (err) { res.status(400).json({ message: err.message }); }
 };
 
-export const crearLote = async (req, res) => {
+/**
+ * createBatch
+ * - Inserta múltiples calificaciones en una operación atómica (transaction).
+ * - Body: array de objetos con la estructura del modelo.
+ */
+export const createBatch = async (req, res) => {
   try {
-    const arr = req.body; // array de calificaciones
-    const result = await service.crearLote(arr);
+    const arr = req.body; // array of qualifications
+    const result = await service.createBatch(arr);
     res.status(201).json(result);
   } catch (err) { res.status(400).json({ message: err.message }); }
 };
 
-export const generarFinales = async (req, res) => {
+/**
+ * generateFinals
+ * - Genera calificaciones finales a partir de las calificaciones por periodo.
+ * - Body: { schoolId, year, groupId (opcional) }
+ * - Devuelve { count, results } con los finales generados/actualizados.
+ */
+export const generateFinals = async (req, res) => {
   try {
-    const { colegioId, año, grupoId } = req.body;
-    const resultados = await service.generarFinales({ colegioId, año, grupoId });
-    res.json({ count: resultados.length, resultados });
+    const { schoolId, year, groupId } = req.body;
+    const results = await service.generateFinals({ schoolId, year, groupId });
+    res.json({ count: results.length, results });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-export const actualizar = async (req, res) => {
+/**
+ * update
+ * - Actualiza una calificación por su id (normalmente calificación de periodo).
+ * - Path params: :id
+ * - Body: campos a actualizar
+ */
+export const update = async (req, res) => {
   try {
-    const updated = await service.actualizar(req.params.id, req.body);
+    const updated = await service.update(req.params.id, req.body);
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 };
 
-
-export const actualizarFinal = async (req, res) => {
+/**
+ * updateFinal
+ * - Actualiza una calificación final (gradeType === 'FINAL').
+ * - Path params: :id
+ * - Body: campos a actualizar (por ejemplo: grade, observations)
+ */
+export const updateFinal = async (req, res) => {
   try {
     const { id } = req.params;
-    const cambios = req.body;
-    const updated = await service.actualizarFinal(id, cambios);
+    const changes = req.body;
+    const updated = await service.updateFinal(id, changes);
     res.json(updated);
   } catch (err) {
     res.status(400).json({ message: err.message });

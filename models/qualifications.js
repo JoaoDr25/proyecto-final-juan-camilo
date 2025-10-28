@@ -1,23 +1,98 @@
 import mongoose from 'mongoose';
 const { Schema, model } = mongoose;
 
-const CalificacionSchema = new Schema({
-    colegio: { type: Schema.Types.ObjectId, ref: 'Colegio', required: true },
-    estudiante: { type: Schema.Types.ObjectId, ref: 'UsuariosColegio', required: true },
-    materia: { type: Schema.Types.ObjectId, ref: 'Materia', required: true },
-    grupo: { type: Schema.Types.ObjectId, ref: 'Grupo', required: true },
-    periodo: { type: Schema.Types.ObjectId, ref: 'Periodo', default: null }, // null para nota final
-    año: { type: Number, required: true },
-    tipoNota: { type: String, enum: ['PERIODO', 'FINAL'], required: true },
-    nota: { type: Number, required: true },
-    juicioValorativo: { type: String, default: '' },
-    fallas: { type: Number, default: 0 },
-    observaciones: { type: String, default: '' },
-    fechaRegistro: { type: Date, default: Date.now },
-    registradoPor: { type: Schema.Types.ObjectId, ref: 'UsuariosColegio' },
-}, { timestamps: true });
+const QualificationSchema = new Schema({
+    // Referencias a otros modelos
+    school: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'School', 
+        required: true,
+        description: 'Colegio al que pertenece la calificación'
+    },
+    student: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'SchoolUsers', 
+        required: true,
+        description: 'Estudiante al que pertenece la calificación'
+    },
+    subject: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Subject', 
+        required: true,
+        description: 'Materia/asignatura'
+    },
+    group: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Group', 
+        required: true,
+        description: 'Grupo/curso del estudiante'
+    },
+    period: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Period', 
+        default: null, // null indica que es una nota final
+        description: 'Período académico (null para notas finales)'
+    },
 
-CalificacionSchema.index({ estudiante: 1, materia: 1, periodo: 1, año: 1 }, { unique: false });
+    // Campos de la calificación
+    year: { 
+        type: Number, 
+        required: true,
+        description: 'Año académico'
+    },
+    gradeType: { 
+        type: String, 
+        enum: ['PERIOD', 'FINAL'], 
+        required: true,
+        description: 'Tipo de nota: PERIOD (período) o FINAL'
+    },
+    grade: { 
+        type: Number, 
+        required: true,
+        description: 'Calificación numérica'
+    },
+    evaluativeJudgment: { 
+        type: String, 
+        default: '',
+        description: 'Juicio evaluativo cualitativo'
+    },
+    absences: { 
+        type: Number, 
+        default: 0,
+        description: 'Número de ausencias en el período'
+    },
+    observations: { 
+        type: String, 
+        default: '',
+        description: 'Observaciones adicionales'
+    },
 
-export default model('Calificacion', CalificacionSchema);
+    // Metadatos
+    registrationDate: { 
+        type: Date, 
+        default: Date.now,
+        description: 'Fecha de registro de la calificación'
+    },
+    registeredBy: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'SchoolUsers',
+        description: 'Usuario que registró la calificación'
+    }
+}, { 
+    timestamps: true, // Añade createdAt y updatedAt automáticamente
+    description: 'Modelo de calificaciones académicas'
+});
+
+// Índice compuesto para búsquedas frecuentes
+// No es único para permitir múltiples calificaciones del mismo estudiante
+// en la misma materia (diferentes tipos de nota)
+QualificationSchema.index(
+    { student: 1, subject: 1, period: 1, year: 1 }, 
+    { 
+        unique: false,
+        description: 'Índice para optimizar búsquedas por estudiante, materia, período y año'
+    }
+);
+
+export default model('qualifications', QualificationSchema);
 

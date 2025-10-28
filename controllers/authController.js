@@ -1,76 +1,90 @@
-import UsuariosColegio from '../models/usersSchool.js';
+import SchoolUsers from '../models/usersSchool.js';
 import jwt from 'jsonwebtoken';
 
-// Generar token JWT
-const generarToken = (id) => {
+const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
-// Registrar usuario
-export const registrar = async (req, res) => {
+/**
+ * register
+ * - Crea un usuario nuevo en la colección SchoolUsers.
+ * - Valida que no exista otro usuario con el mismo identificationNumber.
+ * - El hashing de la contraseña se realiza en el hook pre('save') del modelo.
+ */
+export const register = async (req, res) => {
   try {
     const {
-      tipoIdentificacion,
-      numeroIdentificacion,
-      nombre,
-      apellido,
-      correo,
-      contraseña,
-      rol,
-      colegio
+      identificationType,
+      identificationNumber,
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      school
     } = req.body;
 
-    // Validar duplicado por número de identificación
-    const existe = await UsuariosColegio.findOne({ numeroIdentificacion });
-    if (existe) return res.status(400).json({ message: 'Ya existe un usuario con ese número de identificación' });
+    // Evitar duplicados por número de identificación
+    const exists = await SchoolUsers.findOne({ identificationNumber });
+    if (exists) return res.status(400).json({ message: 'Ya existe un usuario con este número de identificación' });
 
-    const nuevoUsuario = await UsuariosColegio.create({
-      tipoIdentificacion,
-      numeroIdentificacion,
-      nombre,
-      apellido,
-      correo,
-      contraseña,
-      rol,
-      colegio
+    // Crear el usuario. El password será hasheado automáticamente por el modelo.
+    const newUser = await SchoolUsers.create({
+      identificationType,
+      identificationNumber,
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      school
     });
 
-    const token = generarToken(nuevoUsuario._id);
+    // Generar token JWT (si decides usar este controlador para autenticación local)
+    const token = generateToken(newUser._id);
 
+    // Responder con información mínima del usuario y el token
     res.status(201).json({
       message: 'Usuario creado con éxito',
-      usuario: {
-        id: nuevoUsuario._id,
-        nombre: nuevoUsuario.nombre,
-        rol: nuevoUsuario.rol,
-        numeroIdentificacion: nuevoUsuario.numeroIdentificacion,
+      user: {
+        id: newUser._id,
+        firstName: newUser.firstName,
+        role: newUser.role,
+        identificationNumber: newUser.identificationNumber,
       },
       token,
     });
   } catch (error) {
+    // Si Mongoose lanza un ValidationError, aquí se captura y se devuelve 500
+    // Puedes mejorar esto devolviendo 400 para errores de validación específicos.
     res.status(500).json({ message: error.message });
   }
 };
 
-// Iniciar sesión
+/**
+ * login
+ * - Busca un usuario por identificationNumber y compara la contraseña
+ *   usando el método comparePassword del modelo.
+ * - Si las credenciales son válidas devuelve un token JWT y datos básicos.
+ */
 export const login = async (req, res) => {
   try {
-    const { numeroIdentificacion, contraseña } = req.body;
-    const usuario = await UsuariosColegio.findOne({ numeroIdentificacion });
-    if (!usuario) return res.status(400).json({ message: 'Usuario no encontrado' });
+    const { identificationNumber, password } = req.body;
+    const user = await SchoolUsers.findOne({ identificationNumber });
+    if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
 
-    const esValida = await usuario.compararContraseña(contraseña);
-    if (!esValida) return res.status(401).json({ message: 'Contraseña incorrecta' });
+    const isValid = await user.comparePassword(password);
+    if (!isValid) return res.status(401).json({ message: 'Contraseña incorrecta' });
 
-    const token = generarToken(usuario._id);
+    const token = generateToken(user._id);
 
     res.json({
-      message: 'Inicio de sesión exitoso',
-      usuario: {
-        id: usuario._id,
-        nombre: usuario.nombre,
-        rol: usuario.rol,
-        numeroIdentificacion: usuario.numeroIdentificacion
+      message: 'Inicio de sesión exitosa',
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        role: user.role,
+        identificationNumber: user.identificationNumber
       },
       token,
     });
@@ -79,8 +93,12 @@ export const login = async (req, res) => {
   }
 };
 
-// Perfil del usuario autenticado
-export const perfil = async (req, res) => {
+/**
+ * profile
+ * - Devuelve el usuario autenticado adjuntado en req.user por el middleware
+ *   de autenticación. Si no utilizas el middleware local, esta ruta devolverá
+ *   undefined o fallará según cómo se gestione req.user.
+ */
+export const profile = async (req, res) => {
   res.json(req.user);
 };
-
