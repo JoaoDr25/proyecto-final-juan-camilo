@@ -1,9 +1,5 @@
 node_modules
 models/group.js
-models/period.js
 models/school.js
 models/subject.js
-models/academicYear.js
-controllers/academicYearController.js
-routes/academicYearRoutes.js
-services/academicYearService.js
+models/headquarter.js

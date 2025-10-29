@@ -94,5 +94,5 @@ QualificationSchema.index(
     }
 );
 
-export default model('qualifications', QualificationSchema);
+export default model('Qualifications', QualificationSchema);
 
