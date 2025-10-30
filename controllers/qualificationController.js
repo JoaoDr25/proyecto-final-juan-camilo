@@ -141,10 +141,15 @@ export const create = async (req, res) => {
  */
 export const createBatch = async (req, res) => {
   try {
-    const arr = req.body; // array of qualifications
-    const result = await service.createBatch(arr);
-    res.status(201).json(result);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+    const data = await service.createBatch(req.body);
+    res.status(201).json({
+      message: `${data.length} calificaciones creadas correctamente`,
+      data
+    });
+  } catch (err) {
+    console.error('❌ Error al crear calificaciones en lote:', err);
+    res.status(400).json({ message: err.message });
+  }
 };
 
 /**

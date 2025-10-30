@@ -156,11 +156,54 @@ router.post(
 router.post(
   '/lote',
   [
-    check().isArray().withMessage('Debe enviar un array de calificaciones'),
-    // auth,
-    // roleCheck(['secretary']),
+    check().custom((value, { req }) => {
+      const calificaciones = req.body;
+
+      if (!Array.isArray(calificaciones) || calificaciones.length === 0) {
+        throw new Error('Debe enviar un array de calificaciones');
+      }
+
+      calificaciones.forEach((item, index) => {
+        // Validar IDs
+        if (!item.school || !item.school.match(/^[0-9a-fA-F]{24}$/)) {
+          throw new Error(`La calificación #${index + 1} tiene un ID de colegio inválido`);
+        }
+        if (!item.student || !item.student.match(/^[0-9a-fA-F]{24}$/)) {
+          throw new Error(`La calificación #${index + 1} tiene un ID de estudiante inválido`);
+        }
+        if (!item.subject || !item.subject.match(/^[0-9a-fA-F]{24}$/)) {
+          throw new Error(`La calificación #${index + 1} tiene un ID de materia inválido`);
+        }
+        if (item.group && !item.group.match(/^[0-9a-fA-F]{24}$/)) {
+          throw new Error(`La calificación #${index + 1} tiene un ID de grupo inválido`);
+        }
+
+        // Validar año
+        if (
+          typeof item.year !== 'number' ||
+          item.year < 2000 ||
+          item.year > 2100
+        ) {
+          throw new Error(`La calificación #${index + 1} tiene un año no válido`);
+        }
+
+        // Validar tipo de nota
+        if (!['PERIOD', 'FINAL'].includes(item.gradeType)) {
+          throw new Error(`La calificación #${index + 1} tiene un tipo de nota inválido`);
+        }
+
+        // Validar nota
+        if (typeof item.grade !== 'number' || item.grade < 0 || item.grade > 5) {
+          throw new Error(`La calificación #${index + 1} tiene una nota fuera del rango (0–5)`);
+        }
+      });
+
+      return true;
+    }),
+    handleValidationErrors,
   ],
-  handleValidationErrors,
+  // auth,
+  // roleCheck(['secretary']),
   controller.createBatch
 );
 

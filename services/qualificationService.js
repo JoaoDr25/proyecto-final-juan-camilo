@@ -31,19 +31,19 @@ export const create = async (data) => {
  * @param {Array} qualificationsArray - Array de objetos calificación
  * @returns {Promise<Array>} Calificaciones creadas
  */
-export const createBatch = async (qualificationsArray) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const docs = await Qualification.insertMany(qualificationsArray, { session });
-    await session.commitTransaction();
-    session.endSession();
-    return docs;
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    throw err;
+export const createBatch = async (dataArray) => {
+  if (!Array.isArray(dataArray) || dataArray.length === 0) {
+    throw new Error('Debe enviar un array de calificaciones');
   }
+  // Verifica si todas las calificaciones tienen los campos mínimos requeridos
+  dataArray.forEach((item, index) => {
+    if (!item.school || !item.student || !item.subject || !item.year) {
+      throw new Error(`Faltan campos requeridos en la calificación #${index + 1}`);
+    }
+  });
+  // Usa insertMany para crear todas en una sola operación
+  const created = await Qualification.insertMany(dataArray, { ordered: true });
+  return created;
 };
 
 /**

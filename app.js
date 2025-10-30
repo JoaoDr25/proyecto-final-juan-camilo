@@ -9,10 +9,10 @@ import validityRoutes from './routes/validityRoutes.js';
 import authRoutes from './routes/auth.js'
 
 // PRUEBAS POSTMAN -- BORRAR ESTOS CUANDO SE INTEGRE LOS MODELOS REALES
-import './models/school.js';
-import './models/subject.js';
-import './models/group.js';
-import './models/headquarter.js';
+// import './models/school.js';
+// import './models/subject.js';
+// import './models/group.js';
+// import './models/headquarter.js';
 
 const app = express();
 
@@ -26,7 +26,7 @@ dotenv.config(); // Carga variables de entorno (.env)
 // Conexión a MongoDB
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+    const conn = await mongoose.connect(process.env.MONGO_URL, {
       dbName: process.env.MONGODB_DB || 'sistema_educativo',
     });
     console.log(`✅ MongoDB conectado: ${conn.connection.host}`);
