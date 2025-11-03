@@ -3,3 +3,7 @@ models/group.js
 models/school.js
 models/subject.js
 models/headquarter.js
+models/period.js
+controllers/authController.js
+models/usersSchool.js
+routes/auth.js

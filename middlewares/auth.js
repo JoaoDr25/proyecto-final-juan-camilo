@@ -16,7 +16,7 @@ const auth = async (req, res, next) => {
   // Extraer y validar formato del header Authorization
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer '))
-    return res.status(401).json({ message: 'Token no proporcionado o inválido' });
+    return res.status(401).json({ error: 'Token no proporcionado o inválido' });
 
   // Obtener el token sin el prefijo 'Bearer '
   const token = authHeader.split(' ')[1];

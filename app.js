@@ -9,10 +9,11 @@ import validityRoutes from './routes/validityRoutes.js';
 import authRoutes from './routes/auth.js'
 
 // PRUEBAS POSTMAN -- BORRAR ESTOS CUANDO SE INTEGRE LOS MODELOS REALES
-// import './models/school.js';
-// import './models/subject.js';
-// import './models/group.js';
-// import './models/headquarter.js';
+import './models/school.js';
+import './models/subject.js';
+import './models/group.js';
+import './models/period.js';
+import './models/headquarter.js';
 
 const app = express();
 

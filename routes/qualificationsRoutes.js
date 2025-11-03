@@ -18,15 +18,20 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 /**
+ * Reglas de acceso actualizadas:
+ * - Rector, Coordinador y Secretaria → solo pueden listar (GET)
+ * - Profesor → puede realizar todas las operaciones (GET, POST, PUT)
+ */
+
+/**
  * Obtener calificación por ID
- * GET /api/calificaciones/:id
  */
 router.get(
   '/:id',
   [
     check('id').isMongoId().withMessage('El ID de la calificación no es válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.get
@@ -34,7 +39,6 @@ router.get(
 
 /**
  * Calificaciones de un estudiante
- * GET /api/calificaciones/estudiantes/:studentId/calificaciones
  */
 router.get(
   '/estudiantes/:studentId/calificaciones',
@@ -42,7 +46,7 @@ router.get(
     check('studentId').isMongoId().withMessage('El ID del estudiante no es válido'),
     check('year').optional().isInt({ min: 2000, max: 2100 }).withMessage('El año debe ser válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.listByStudent
@@ -50,7 +54,6 @@ router.get(
 
 /**
  * Calificaciones de un grupo
- * GET /api/calificaciones/grupos/:groupId/calificaciones
  */
 router.get(
   '/grupos/:groupId/calificaciones',
@@ -58,7 +61,7 @@ router.get(
     check('groupId').isMongoId().withMessage('El ID del grupo no es válido'),
     check('year').optional().isInt({ min: 2000, max: 2100 }).withMessage('El año debe ser válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.listByGroup
@@ -66,7 +69,6 @@ router.get(
 
 /**
  * Calificaciones por grupo y materia
- * GET /api/calificaciones/grupos/:groupId/materias/:subjectId/calificaciones
  */
 router.get(
   '/grupos/:groupId/materias/:subjectId/calificaciones',
@@ -75,7 +77,7 @@ router.get(
     check('subjectId').isMongoId().withMessage('El ID de la materia no es válido'),
     check('year').optional().isInt({ min: 2000, max: 2100 }).withMessage('El año debe ser válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.listByGroupAndSubject
@@ -83,14 +85,13 @@ router.get(
 
 /**
  * Listar todas las calificaciones finales por año
- * GET /api/calificaciones/finales/:year
  */
 router.get(
   '/finales/:year',
   [
     check('year').isInt({ min: 2000, max: 2100 }).withMessage('El año debe ser un número válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.listFinalsByYear
@@ -98,7 +99,6 @@ router.get(
 
 /**
  * Calificaciones finales de un estudiante (por año)
- * GET /api/calificaciones/estudiantes/:studentId/calificaciones/finales
  */
 router.get(
   '/estudiantes/:studentId/calificaciones/finales',
@@ -106,7 +106,7 @@ router.get(
     check('studentId').isMongoId().withMessage('El ID del estudiante no es válido'),
     check('year').optional().isInt({ min: 2000, max: 2100 }).withMessage('El año debe ser válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.listFinalsByStudent
@@ -114,7 +114,6 @@ router.get(
 
 /**
  * Calificaciones finales de un grupo
- * GET /api/calificaciones/grupos/:groupId/calificaciones/finales
  */
 router.get(
   '/grupos/:groupId/calificaciones/finales',
@@ -122,7 +121,7 @@ router.get(
     check('groupId').isMongoId().withMessage('El ID del grupo no es válido'),
     check('year').optional().isInt({ min: 2000, max: 2100 }).withMessage('El año debe ser válido'),
     // auth,
-    // roleCheck(['principal', 'coordinator', 'secretary']),
+    // roleCheck(['rector', 'coordinador', 'secretaria', 'profesor']),
   ],
   handleValidationErrors,
   controller.listFinalsByGroup
@@ -130,7 +129,7 @@ router.get(
 
 /**
  * Crear calificación individual
- * POST /api/calificaciones
+ * Solo profesor
  */
 router.post(
   '/',
@@ -143,7 +142,7 @@ router.post(
     check('gradeType').isIn(['PERIOD', 'FINAL']).withMessage('El tipo de nota debe ser PERIOD o FINAL'),
     check('grade').isFloat({ min: 0, max: 5 }).withMessage('La nota debe estar entre 0 y 5'),
     // auth,
-    // roleCheck(['secretary']),
+    // roleCheck(['profesor']),
   ],
   handleValidationErrors,
   controller.create
@@ -151,65 +150,41 @@ router.post(
 
 /**
  * Crear múltiples calificaciones (lote)
- * POST /api/calificaciones/lote
+ * Solo profesor
  */
 router.post(
   '/lote',
   [
     check().custom((value, { req }) => {
       const calificaciones = req.body;
-
       if (!Array.isArray(calificaciones) || calificaciones.length === 0) {
         throw new Error('Debe enviar un array de calificaciones');
       }
 
       calificaciones.forEach((item, index) => {
-        // Validar IDs
-        if (!item.school || !item.school.match(/^[0-9a-fA-F]{24}$/)) {
-          throw new Error(`La calificación #${index + 1} tiene un ID de colegio inválido`);
-        }
-        if (!item.student || !item.student.match(/^[0-9a-fA-F]{24}$/)) {
-          throw new Error(`La calificación #${index + 1} tiene un ID de estudiante inválido`);
-        }
-        if (!item.subject || !item.subject.match(/^[0-9a-fA-F]{24}$/)) {
-          throw new Error(`La calificación #${index + 1} tiene un ID de materia inválido`);
-        }
-        if (item.group && !item.group.match(/^[0-9a-fA-F]{24}$/)) {
-          throw new Error(`La calificación #${index + 1} tiene un ID de grupo inválido`);
-        }
-
-        // Validar año
-        if (
-          typeof item.year !== 'number' ||
-          item.year < 2000 ||
-          item.year > 2100
-        ) {
-          throw new Error(`La calificación #${index + 1} tiene un año no válido`);
-        }
-
-        // Validar tipo de nota
-        if (!['PERIOD', 'FINAL'].includes(item.gradeType)) {
-          throw new Error(`La calificación #${index + 1} tiene un tipo de nota inválido`);
-        }
-
-        // Validar nota
-        if (typeof item.grade !== 'number' || item.grade < 0 || item.grade > 5) {
-          throw new Error(`La calificación #${index + 1} tiene una nota fuera del rango (0–5)`);
-        }
+        if (!item.school?.match(/^[0-9a-fA-F]{24}$/)) throw new Error(`Calificación #${index + 1}: ID de colegio inválido`);
+        if (!item.student?.match(/^[0-9a-fA-F]{24}$/)) throw new Error(`Calificación #${index + 1}: ID de estudiante inválido`);
+        if (!item.subject?.match(/^[0-9a-fA-F]{24}$/)) throw new Error(`Calificación #${index + 1}: ID de materia inválido`);
+        if (item.group && !item.group.match(/^[0-9a-fA-F]{24}$/)) throw new Error(`Calificación #${index + 1}: ID de grupo inválido`);
+        if (typeof item.year !== 'number' || item.year < 2000 || item.year > 2100)
+          throw new Error(`Calificación #${index + 1}: año no válido`);
+        if (!['PERIOD', 'FINAL'].includes(item.gradeType))
+          throw new Error(`Calificación #${index + 1}: tipo de nota inválido`);
+        if (typeof item.grade !== 'number' || item.grade < 0 || item.grade > 5)
+          throw new Error(`Calificación #${index + 1}: nota fuera del rango (0–5)`);
       });
-
       return true;
     }),
     handleValidationErrors,
+    // auth,
+    // roleCheck(['profesor']),
   ],
-  // auth,
-  // roleCheck(['secretary']),
   controller.createBatch
 );
 
 /**
  * Actualizar calificación de período
- * PUT /api/calificaciones/:id
+ * Solo profesor
  */
 router.put(
   '/:id',
@@ -217,7 +192,7 @@ router.put(
     check('id').isMongoId().withMessage('El ID de la calificación no es válido'),
     check('grade').optional().isFloat({ min: 0, max: 5 }).withMessage('La nota debe estar entre 0 y 5'),
     // auth,
-    // roleCheck(['secretary']),
+    // roleCheck(['profesor']),
   ],
   handleValidationErrors,
   controller.update
@@ -225,7 +200,7 @@ router.put(
 
 /**
  * Actualizar calificación final
- * PUT /api/calificaciones/finales/:id
+ * Solo profesor
  */
 router.put(
   '/finales/:id',
@@ -233,11 +208,12 @@ router.put(
     check('id').isMongoId().withMessage('El ID de la calificación final no es válido'),
     check('grade').optional().isFloat({ min: 0, max: 5 }).withMessage('La nota debe estar entre 0 y 5'),
     // auth,
-    // roleCheck(['secretary']),
+    // roleCheck(['profesor']),
   ],
   handleValidationErrors,
   controller.updateFinal
 );
 
 export default router;
+
 

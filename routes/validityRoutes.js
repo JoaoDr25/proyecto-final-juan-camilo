@@ -18,6 +18,12 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 /**
+ * Reglas de acceso:
+ * - Rector y Coordinador → solo pueden listar (GET)
+ * - Secretaria → puede crear, activar y desactivar vigencias
+ */
+
+/**
  * Listar todas las vigencias (por años)
  * GET /api/vigencias/anio
  */
@@ -46,6 +52,7 @@ router.get(
 /**
  * Crear nueva vigencia
  * POST /api/vigencias
+ * Solo secretaria
  */
 router.post(
   '/',
@@ -86,14 +93,15 @@ router.post(
       .withMessage('El porcentaje de recuperación debe estar entre 0 y 100'),
     // auth,
     // roleCheck(['secretaria']),
-    handleValidationErrors
   ],
+  handleValidationErrors,
   controller.create
 );
 
 /**
  * Activar una vigencia específica
  * PUT /api/vigencias/:id/activar
+ * Solo secretaria
  */
 router.put(
   '/:id/activar',
@@ -101,14 +109,15 @@ router.put(
     check('id').isMongoId().withMessage('El ID de la vigencia no es válido'),
     // auth,
     // roleCheck(['secretaria']),
-    handleValidationErrors
   ],
+  handleValidationErrors,
   controller.activate
 );
 
 /**
  * Desactivar una vigencia específica
  * PUT /api/vigencias/:id/desactivar
+ * Solo secretaria
  */
 router.put(
   '/:id/desactivar',
@@ -116,10 +125,9 @@ router.put(
     check('id').isMongoId().withMessage('El ID de la vigencia no es válido'),
     // auth,
     // roleCheck(['secretaria']),
-    handleValidationErrors
   ],
+  handleValidationErrors,
   controller.deactivate
 );
 
 export default router;
-
